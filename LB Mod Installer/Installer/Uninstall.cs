@@ -57,14 +57,16 @@ namespace LB_Mod_Installer.Installer
     {
         private MainWindow parent;
         private Xv2FileIO FileIO;
+        public InstallerXml installerXml;
         public FileCacheManager fileManager { get; private set; }
         private Mod currentMod = GeneralInfo.Tracker.GetCurrentMod();
 
-        public Uninstall(MainWindow _parent, Xv2FileIO _fileIO, FileCacheManager _fileManager)
+        public Uninstall(MainWindow _parent, Xv2FileIO _fileIO, FileCacheManager _fileManager, InstallerXml _installerXml)
         {
             parent = _parent;
             FileIO = _fileIO;
             fileManager = _fileManager;
+            installerXml = _installerXml;
 
             if (currentMod.Files == null) currentMod.Files = new List<_File>();
         }
@@ -97,18 +99,21 @@ namespace LB_Mod_Installer.Installer
 
         private void UninstallMod()
         {
+            int current = 0;
             //Parsed files
             foreach (var file in currentMod.Files)
             {
-                UpdateProgessBarText(string.Format("_Uninstalling \"{0}\"...", file.filePath));
+                UpdateProgessBarText(string.Format("_Uninstalling \"{0}\"...", file.filePath), current);
                 ResolveFileType(file.filePath, file);
+                current++;
             }
 
             //MsgComponents
             foreach (var file in currentMod.MsgComponents)
             {
-                UpdateProgessBarText(string.Format("_Uninstalling \"{0}\"...", file.filePath));
+                UpdateProgessBarText(string.Format("_Uninstalling \"{0}\"...", file.filePath), current);
                 Uninstall_MsgComponent(file.filePath, file);
+                current++;
             }
 
             //Clear trackers
@@ -132,7 +137,7 @@ namespace LB_Mod_Installer.Installer
         public async Task SaveFiles()
         {
             //Call externally. We might want to uninstall + install in one go, so the uninstall class shouldn't save by itself.
-            UpdateProgessBarText("_Saving files...", false);
+            UpdateProgessBarText("_Saving files...", advanceProgress: false, overwriteShowProgress: true);
 
 #if !DEBUG
             try
@@ -152,7 +157,7 @@ namespace LB_Mod_Installer.Installer
 
                 try
                 {
-                    UpdateProgessBarText("_Restoring files...", false);
+                    UpdateProgessBarText("_Restoring files...", advanceProgress: false, overwriteShowProgress: true);
                     fileManager.RestoreBackups();
                 }
                 catch
@@ -334,7 +339,7 @@ namespace LB_Mod_Installer.Installer
         {
             try
             {
-                UpdateProgessBarText("_Uninstalling binary files...", false);
+                UpdateProgessBarText("_Uninstalling binary files...", advanceProgress: false, overwriteShowProgress: true);
 
                 if (currentMod.JungleFiles == null) return;
 
@@ -1712,15 +1717,22 @@ namespace LB_Mod_Installer.Installer
                 parent.ProgressBar_Main.Value = 0;
             }));
         }
-
-        private void UpdateProgessBarText(string text, bool advanceProgress = true)
+        private void UpdateProgessBarText(string text, int currentProgress = -1, bool advanceProgress = true, bool overwriteShowProgress = false)
         {
-            parent.Dispatcher.Invoke((System.Action)(() =>
+            double percentage = (double)(currentProgress - 0) / (currentMod.TotalInstalledFiles - 0) * 100;
+            parent.Dispatcher.BeginInvoke((System.Action)(() =>
             {
                 if (advanceProgress)
                     parent.ProgressBar_Main.Value++;
 
+                if (currentProgress != -1 && !overwriteShowProgress && bool.Parse(installerXml.UiOverrides.ProgressBarShowProgress))
+                {
+                    parent.ProgressBar_Label.Content = $"Uninstalling {percentage:0.00}%";
+                    return;
+                }
+
                 parent.ProgressBar_Label.Content = text;
+
             }));
         }
 

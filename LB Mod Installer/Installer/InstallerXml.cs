@@ -507,6 +507,11 @@ namespace LB_Mod_Installer.Installer
         [YAXDontSerializeIfNull]
         public string ProgressBarBackgroundColor { get; set; }
 
+        [YAXAttributeFor("ProgressBarShowProgress")]
+        [YAXSerializeAs("value")]
+        [YAXDontSerializeIfNull]
+        public string ProgressBarShowProgress { get; set; }
+
 
         //Preset InstallStep Overwrites
         [YAXDontSerializeIfNull]
