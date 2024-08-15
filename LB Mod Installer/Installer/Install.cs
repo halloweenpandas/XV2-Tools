@@ -178,6 +178,7 @@ namespace LB_Mod_Installer.Installer
 
         private void StartInstall()
         {
+            int currentProgress = 0;
             //Files. 
             foreach (var File in Files)
             {
@@ -194,22 +195,22 @@ namespace LB_Mod_Installer.Installer
                     case FileType.Binary:
                     case FileType.XML:
                         //Install XML or Binary
-                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)));
+                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)), true, currentProgress, false);
                         ResolveFileType(File.SourcePath, File.InstallPath, type == FileType.XML, File.UseSkipBinding, File);
                         break;
                     case FileType.VfxPackage:
                         //Install effects
-                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)));
+                        UpdateProgessBarText(String.Format("_Installing \"{0}\"...", Path.GetFileName(File.InstallPath)), true, currentProgress, false);
                         Install_EEPK(File.SourcePath, File.InstallPath);
                         break;
                     case FileType.AudioPackage:
                         //Install new BGM or CSS tracks
-                        UpdateProgessBarText("_Installing Audio...");
+                        UpdateProgessBarText("_Installing Audio...", true, currentProgress, false);
                         Install_ACB(File.SourcePath, File.InstallPath);
                         break;
                     case FileType.CopyFile:
                         //Binary file. Copy to dir.
-                        UpdateProgessBarText(String.Format("_Copying \"{0}\"...", Path.GetFileNameWithoutExtension(File.SourcePath)));
+                        UpdateProgessBarText(String.Format("_Copying \"{0}\"...", Path.GetFileNameWithoutExtension(File.SourcePath)), true, currentProgress, false);
 
                         if (!IsJungleFileBlacklisted(File.InstallPath))
                         {
@@ -218,7 +219,7 @@ namespace LB_Mod_Installer.Installer
                         break;
                     case FileType.CopyDir:
                         {
-                            UpdateProgessBarText($"_Copying {File.SourcePath}...");
+                            UpdateProgessBarText($"_Copying {File.SourcePath}...", true, currentProgress, false);
 
                             //Path can be in either data or JUNGLE3
                             if (!ProcessJungle($"{JUNGLE3}/{File.SourcePath}", true, File.InstallPath, true))
@@ -226,33 +227,34 @@ namespace LB_Mod_Installer.Installer
                         }
                         break;
                     case FileType.SkillDir:
-                        UpdateProgessBarText($"_Skill {File.InstallPath}...");
+                        UpdateProgessBarText($"_Skill {File.InstallPath}...", true, currentProgress, false);
                         InstallSkillFolder(File);
                         break;
                     case FileType.Binding:
                         bindingManager.ParseString(File.Binding, GeneralInfo.InstallerXml, "Binding");
                         break;
                     case FileType.EPatch:
-                        UpdateProgessBarText(string.Format("_EPatch \"{0}\"...", Path.GetFileNameWithoutExtension(File.SourcePath)));
+                        UpdateProgessBarText(string.Format("_EPatch \"{0}\"...", Path.GetFileNameWithoutExtension(File.SourcePath)), true, currentProgress, false);
                         fileManager.AddStreamFile($"../XV2PATCHER/Epatches/{File.SourcePath}", zipManager.GetZipEntry(string.Format("Epatches/{0}", File.SourcePath)), true);
                         break;
                     default:
                         MessageBox.Show($"Unknown File.Type: {type}");
                         break;
                 }
+                currentProgress++;
             }
 
             //JUNGLES
 
             if (useJungle1)
             {
-                UpdateProgessBarText("_Installing JUNGLE1...");
+                UpdateProgessBarText("_Installing JUNGLE1...", true, currentProgress, false);
                 ProcessJungle(JUNGLE1, true);
             }
 
             if (useJungle2)
             {
-                UpdateProgessBarText("_Installing JUNGLE2...");
+                UpdateProgessBarText("_Installing JUNGLE2...", true, currentProgress, false);
                 ProcessJungle(JUNGLE2, false);
             }
 
@@ -716,7 +718,7 @@ namespace LB_Mod_Installer.Installer
             try
 #endif
             {
-                UpdateProgessBarText("_Saving files...", false);
+                UpdateProgessBarText("_Saving files...", false, overwriteShowProgress: true);
                 startedSaving = true;
 
                 fileManager.SaveParsedFiles();
@@ -2955,12 +2957,19 @@ namespace LB_Mod_Installer.Installer
             }));
         }
 
-        private void UpdateProgessBarText(string text, bool advanceProgress = true)
+        private void UpdateProgessBarText(string text, bool advanceProgress = true, int currentProgress = -1, bool overwriteShowProgress = false)
         {
+            double percentage = (double)currentProgress / Files.Count * 100;
             Parent.Dispatcher.BeginInvoke((System.Action)(() =>
             {
                 if (advanceProgress)
                     Parent.ProgressBar_Main.Value++;
+
+                if (currentProgress != -1 && !overwriteShowProgress && installerXml.UiOverrides.ProgressBarShowProgress)
+                {
+                    Parent.ProgressBar_Label.Content = $"Installing {percentage.ToString("0.00", CultureInfo.InvariantCulture)}%";
+                    return;
+                }
 
                 Parent.ProgressBar_Label.Content = text;
             }));
