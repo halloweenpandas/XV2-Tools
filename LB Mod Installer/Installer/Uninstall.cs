@@ -1922,7 +1922,8 @@ namespace LB_Mod_Installer.Installer
 
         private void UpdateProgessBarText(string text, bool advanceProgress = true)
         {
-            parent.Dispatcher.Invoke((System.Action)(() =>
+            double percentage = (double)(currentProgress) / (currentMod.TotalInstalledFiles) * 100;
+            parent.Dispatcher.BeginInvoke((System.Action)(() =>
             {
                 if (advanceProgress)
                     parent.ProgressBar_Main.Value++;
