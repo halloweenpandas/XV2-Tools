@@ -23,7 +23,11 @@ namespace LB_Mod_Installer.Installer.ACB
 
         //BGM Constants
         internal const string BGM_PATH = "sound/BGM/CAR_BGM.acb";
+        internal const string BGM_TU6_PATH = "sound/BGM/CAR_TU6_Add_BGM.acb";
         internal const string BGM_TU10_PATH = "sound/BGM/CAR_TU10_Add_BGM.acb";
+        internal const string BGM_TU17_PATH = "sound/BGM/CAR_TU17_BGM.acb";
+        internal const string BGM_TU18_PATH = "sound/BGM/CAR_TU18_StaffRoll_JP.acb";
+        internal const string TTL_BGM_PATH = "sound/BGM/TTL_BGM.acb";
         internal const string OBL_PATH = "system/OptionBGMList.obl";
         internal const string OPTION_MSG_PATH = "msg/option_text_";
         internal const string OPTION_INSTALL_TYPE = "BGM_OPTION";
@@ -46,6 +50,8 @@ namespace LB_Mod_Installer.Installer.ACB
         private OBL_File oblFile;
         private List<MSG_File> msgFiles;
         private int currentCueId = 500;
+        private string[] validDirectPaths = { BGM_PATH, BGM_TU6_PATH, BGM_TU10_PATH, BGM_TU17_PATH, BGM_TU18_PATH, TTL_BGM_PATH };
+        private string[] validNewOptionPaths = { BGM_PATH };
 
         public AcbInstaller(Install _install, string audioPackagePath, string _installPath)
         {
@@ -62,12 +68,16 @@ namespace LB_Mod_Installer.Installer.ACB
                 //Validate the install path
                 if (!string.IsNullOrWhiteSpace(installPath))
                 {
-                    if (!installPath.Equals(BGM_TU10_PATH, StringComparison.OrdinalIgnoreCase) && !installPath.Equals(BGM_PATH, StringComparison.OrdinalIgnoreCase))
-                        throw new ArgumentException($"InstallPath is not valid. It must be either for a supported BGM ACB (CAR_BGM and CAR_TU10_Add_BGM) or empty.");
+                    if (!validDirectPaths.Contains(installPath, StringComparer.OrdinalIgnoreCase))
+                    {
+                        string validNamesList = string.Join(", ", validDirectPaths.Select(Path.GetFileName));
+                        throw new ArgumentException($"InstallPath is not valid. It must be either for a supported BGM ACB ({validNamesList}) or empty.");
+                    }
                     
-                    if(installPath.Equals(BGM_TU10_PATH, StringComparison.OrdinalIgnoreCase) && audioPackage.AudioPackageType == AudioPackageType.BGM_NewOption)
-                        throw new ArgumentException($"NewOption cannot be used when installing into CAR_TU10_Add_BGM.acb.");
-
+                    if (!validNewOptionPaths.Contains(installPath, StringComparer.OrdinalIgnoreCase) && audioPackage.AudioPackageType == AudioPackageType.BGM_NewOption)
+                    {
+                        throw new ArgumentException($"NewOption can only be used when installing into CAR_BGM.acb.");
+                    }
                 }
                 else
                 {
