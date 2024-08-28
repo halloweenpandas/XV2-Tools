@@ -1915,12 +1915,18 @@ namespace LB_Mod_Installer.Installer
                 HCI_File xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<HCI_File>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : HCI_File.Parse(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
                 HCI_File binaryFile = (HCI_File)GetParsedFile<HCI_File>(installPath);
 
+                if (xmlFile.Overwrite)
+                {
+                    binaryFile = new HCI_File();
+                    fileManager.AddParsedFile(installPath, binaryFile);
+                }
+
                 //Install entries
                 foreach (var entry in xmlFile.Entries)
                 {
                     GeneralInfo.Tracker.AddID(installPath, Sections.HCI_Entry, entry.Index);
 
-                    binaryFile.InstallEntry(entry);
+                    binaryFile.InstallEntry(entry, xmlFile.Overwrite);
                 }
 
                 //InstallEntries<HCI_Entry>(xmlFile.Entries, binaryFile.Entries, installPath, Sections.HCI_Entry);
