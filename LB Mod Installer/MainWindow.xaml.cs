@@ -725,7 +725,7 @@ namespace LB_Mod_Installer
                 //Reload tracker
                 GeneralInfo.LoadTracker();
 
-                Uninstall uninstall = new Uninstall(this, FileIO, fileManager);
+                Uninstall uninstall = new Uninstall(this, FileIO, fileManager, InstallerInfo);
 
                 //uninstall.Start();
                 //uninstall.SaveFiles();
@@ -769,7 +769,7 @@ namespace LB_Mod_Installer
                 //Ensure everything needed for installing is initialized
                 await SetupInstallProcess();
                 //Time to install, all other details have been confirmed
-                StartInstall();
+                await StartInstall();
             }
             else
             {
@@ -824,7 +824,7 @@ namespace LB_Mod_Installer
                 //Uninstall previous version (if already installed)
                 if (isInstalled)
                 {
-                    Uninstall uninstall = new Uninstall(this, FileIO, fileManager);
+                    Uninstall uninstall = new Uninstall(this, FileIO, fileManager, InstallerInfo);
                     await Task.Run(uninstall.Start);
                 }
 
@@ -834,7 +834,7 @@ namespace LB_Mod_Installer
                 //Uninstall jungle files that were not included in the new install.
                 if (isInstalled)
                 {
-                    Uninstall uninstall = new Uninstall(this, FileIO, fileManager);
+                    Uninstall uninstall = new Uninstall(this, FileIO, fileManager, InstallerInfo);
                     await Task.Run(uninstall.Uninstall_JungleFiles);
                 }
 
