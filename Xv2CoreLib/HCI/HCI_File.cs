@@ -13,6 +13,11 @@ namespace Xv2CoreLib.HCI
     {
         private const uint HCI_SIGNATURE = 0x49484323;
 
+        [YAXAttributeForClass]
+        [YAXDontSerializeIfNull]
+        [YAXErrorIfMissed(YAXExceptionTypes.Ignore)]
+        public bool Overwrite { get; set; } = false;
+
         [YAXCollection(YAXCollectionSerializationTypes.RecursiveWithNoContainingElement, EachElementName = "HciEntry")]
         public List<HCI_Entry> Entries { get; set; } = new List<HCI_Entry>();
 
@@ -112,8 +117,14 @@ namespace Xv2CoreLib.HCI
 
         #endregion
 
-        public void InstallEntry(HCI_Entry entry)
+        public void InstallEntry(HCI_Entry entry, bool overwrite)
         {
+            if (overwrite)
+            {
+                Entries.Add(entry);
+                return;
+            }
+
             //First check if an equal entry already exists
             int existingIdx = Entries.IndexOf(Entries.FirstOrDefault(x => x.Index == entry.Index));
 
