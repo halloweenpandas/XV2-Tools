@@ -88,12 +88,12 @@ namespace Xv2CoreLib.EMS
                 emsFile.Nodes.Add(new EMS_Node()
                 {
                     Name = StringEx.GetString(bytes, offset + 32, false, StringEx.EncodingType.UTF8, 32),
-                    Index = nodeIndexList.IndexOf(offset),
+                    ParentIndex = nodeIndexList.IndexOf(offset),
                     ChildIndex = nodeIndexList.IndexOf(childOffset),
                     SiblingIndex = nodeIndexList.IndexOf(siblingOffset),
                     PreviousNodeIndex = nodeIndexList.IndexOf(prevOffset),
                     I_00 = BitConverter.ToInt32(bytes, offset + 0),
-                    SpriteIndex = section2IndexList.IndexOf(BitConverter.ToInt32(bytes, offset + 16))
+                    SpriteIndex = section2IndexList.IndexOf(BitConverter.ToInt32(bytes, offset + 16)).ToString()
                 });
             }
 
@@ -113,7 +113,7 @@ namespace Xv2CoreLib.EMS
                 sprite.I_02 = BitConverter.ToUInt16(bytes, offset + 2);
                 sprite.I_16 = BitConverter.ToInt32(bytes, offset + 16);
                 sprite.I_20 = BitConverter.ToInt32(bytes, offset + 20);
-                sprite.Index = BitConverter.ToInt32(bytes, offset + 24);
+                sprite.Index = BitConverter.ToInt32(bytes, offset + 24).ToString();
                 sprite.I_28 = BitConverter.ToInt32(bytes, offset + 28);
                 sprite.I_32 = BitConverter.ToInt32(bytes, offset + 32);
                 sprite.F_36 = BitConverter.ToSingle(bytes, offset + 36);
@@ -355,7 +355,7 @@ namespace Xv2CoreLib.EMS
                     bytes.AddRange(BitConverter.GetBytes(0)); //AnimatedPart3 offset
                     bytes.AddRange(BitConverter.GetBytes(Sprites[i].I_16));
                     bytes.AddRange(BitConverter.GetBytes(Sprites[i].I_20));
-                    bytes.AddRange(BitConverter.GetBytes(Sprites[i].Index));
+                    bytes.AddRange(BitConverter.GetBytes(int.Parse(Sprites[i].Index)));
                     bytes.AddRange(BitConverter.GetBytes(Sprites[i].I_28));
                     bytes.AddRange(BitConverter.GetBytes(Sprites[i].I_32));
                     bytes.AddRange(BitConverter.GetBytes(Sprites[i].F_36));
@@ -399,7 +399,7 @@ namespace Xv2CoreLib.EMS
                             //Frame Index List
                             foreach(var animPart in Sprites[i].InstructionPart1.Component1_Keyframes)
                             {
-                                bytes.AddRange(BitConverter.GetBytes(animPart.Time));
+                                bytes.AddRange(BitConverter.GetBytes(ushort.Parse(animPart.Time)));
                                 bytes.AddRange(BitConverter.GetBytes(animPart.I_02));
                             }
 
@@ -423,7 +423,7 @@ namespace Xv2CoreLib.EMS
                             //Frame Index List
                             foreach (var animPart in Sprites[i].InstructionPart1.Component2_Keyframes)
                             {
-                                bytes.AddRange(BitConverter.GetBytes(animPart.Time));
+                                bytes.AddRange(BitConverter.GetBytes(ushort.Parse(animPart.Time)));
                                 bytes.AddRange(BitConverter.GetBytes(animPart.I_02));
                             }
 
@@ -470,7 +470,7 @@ namespace Xv2CoreLib.EMS
                             //Frame Index List
                             foreach (var animPart in Sprites[i].InstructionPart2.Component1_Keyframes)
                             {
-                                bytes.AddRange(BitConverter.GetBytes(animPart.Time));
+                                bytes.AddRange(BitConverter.GetBytes(ushort.Parse(animPart.Time)));
                                 bytes.AddRange(BitConverter.GetBytes(animPart.I_02));
                             }
 
@@ -494,7 +494,7 @@ namespace Xv2CoreLib.EMS
                             //Frame Index List
                             foreach (var animPart in Sprites[i].InstructionPart2.Component2_Keyframes)
                             {
-                                bytes.AddRange(BitConverter.GetBytes(animPart.Time));
+                                bytes.AddRange(BitConverter.GetBytes(ushort.Parse(animPart.Time)));
                                 bytes.AddRange(BitConverter.GetBytes(animPart.I_02));
                             }
 
@@ -551,7 +551,7 @@ namespace Xv2CoreLib.EMS
                             //Frame Index List
                             foreach (var animPart in Sprites[i].InstructionPart3.Component1_Keyframes)
                             {
-                                bytes.AddRange(BitConverter.GetBytes(animPart.Time));
+                                bytes.AddRange(BitConverter.GetBytes(ushort.Parse(animPart.Time)));
                                 bytes.AddRange(BitConverter.GetBytes(animPart.I_02));
                             }
 
@@ -575,7 +575,7 @@ namespace Xv2CoreLib.EMS
                             //Frame Index List
                             foreach (var animPart in Sprites[i].InstructionPart3.Component3_Keyframes)
                             {
-                                bytes.AddRange(BitConverter.GetBytes(animPart.Time));
+                                bytes.AddRange(BitConverter.GetBytes(ushort.Parse(animPart.Time)));
                                 bytes.AddRange(BitConverter.GetBytes(animPart.I_02));
                             }
 
@@ -607,12 +607,13 @@ namespace Xv2CoreLib.EMS
             {
                 for(int i = 0; i < nodeCount; i++)
                 {
-                    if(nodes[i].SpriteIndex >= 0)
+                    int SpriteIndex = int.Parse(nodes[i].SpriteIndex);
+                    if(SpriteIndex >= 0)
                     {
-                        if (nodes[i].SpriteIndex >= spriteOffsets.Length)
+                        if (SpriteIndex >= spriteOffsets.Length)
                             throw new ArgumentException($"SpriteIndex on Node {i} references a sprite which does not exist!");
 
-                        Utils.ReplaceRange(bytes, BitConverter.GetBytes(spriteOffsets[nodes[i].SpriteIndex]), spriteReferenceOffset[i]);
+                        Utils.ReplaceRange(bytes, BitConverter.GetBytes(spriteOffsets[SpriteIndex]), spriteReferenceOffset[i]);
                     }
                 }
             }
@@ -633,22 +634,43 @@ namespace Xv2CoreLib.EMS
             amkFile.Save(path);
         }
         #endregion
+        public EMS_Sprite GetEmsSpriteEntry(string index)
+        {
+            if (Sprites.Any(e => e.Idx == index))
+            {
+                return Sprites.FirstOrDefault(e => e.Idx == index);
+            }
+            else
+            {
+                EMS_Sprite emsSprite = new EMS_Sprite() { Idx = index };
+                Sprites.Add(emsSprite);
+                return emsSprite;
+            }
+        }
     }
 
     [YAXSerializeAs("Node")]
     [Serializable]
-    public class EMS_Node
+    public class EMS_Node : IInstallable
     {
+        #region Installer
+        [YAXDontSerialize]
+        public int SortID { get { return int.Parse(SpriteIndex); } set { SpriteIndex = value.ToString(); } }
+        [YAXDontSerialize]
+        public string Index { get { return SpriteIndex.ToString(); } set { SpriteIndex = value.ToString(); } }
+        #endregion
+
         [YAXAttributeForClass]
         public string Name { get; set; }
 
         [YAXAttributeForClass]
-        public int SpriteIndex { get; set; }
+        [BindingAutoId]
+        public string SpriteIndex { get; set; } //int
         [YAXAttributeForClass]
         public int I_00 { get; set; }
 
         //Index links. Used when loading and saving, otherwise irrelevant.
-        internal int Index;
+        internal int ParentIndex;
         internal int ChildIndex;
         internal int SiblingIndex;
         internal int PreviousNodeIndex;
@@ -686,7 +708,7 @@ namespace Xv2CoreLib.EMS
 
             while(siblingIdx != -1)
             {
-                EMS_Node node = originalNodes.FirstOrDefault(x => x.Index == siblingIdx);
+                EMS_Node node = originalNodes.FirstOrDefault(x => x.ParentIndex == siblingIdx);
 
                 if(node != null)
                 {
@@ -720,7 +742,7 @@ namespace Xv2CoreLib.EMS
             for(int i = 0; i < nodes.Count; i++)
             {
                 EMS_Node node = nodes[i].Copy();
-                node.Index = i;
+                node.ParentIndex = i;
                 node.SiblingIndex = -1; //Root level nodes dont have any sibling connection
                 node.PreviousNodeIndex = i - 1;
 
@@ -751,14 +773,14 @@ namespace Xv2CoreLib.EMS
             for(int i = 0; i < childrenNodes.Count; i++)
             {
                 EMS_Node node = childrenNodes[i].Copy();
-                node.Index = newNodes.Count;
-                newNodeIndex[i] = node.Index;
+                node.ParentIndex = newNodes.Count;
+                newNodeIndex[i] = node.ParentIndex;
 
                 newNodes.Add(node);
 
                 if(node.Nodes?.Count > 0)
                 {
-                    node.ChildIndex = CreateNonRecursiveNodes_Rec(newNodes, node.Nodes, node.Index);
+                    node.ChildIndex = CreateNonRecursiveNodes_Rec(newNodes, node.Nodes, node.ParentIndex);
                     node.Nodes = null;
                 }
                 else
@@ -780,10 +802,19 @@ namespace Xv2CoreLib.EMS
     }
 
     [YAXSerializeAs("Sprite")]
-    public class EMS_Sprite
+    public class EMS_Sprite : IInstallable
     {
+        #region Installer
+        [YAXDontSerialize]
+        public int SortID { get { return int.Parse(Idx); } set { Idx = value.ToString(); } }
+        [YAXDontSerialize]
+        public string Index { get { return Idx.ToString(); } set { Idx = value.ToString(); } }
+        #endregion
+
         [YAXAttributeForClass]
-        public int Index { get; set; }
+        [YAXSerializeAs("Index")]
+        [BindingAutoId]
+        public string Idx { get; set; } //int
         [YAXAttributeForClass]
         public string Name { get; set; }
 
@@ -866,6 +897,20 @@ namespace Xv2CoreLib.EMS
         [YAXCollection(YAXCollectionSerializationTypes.Recursive, EachElementName = "Instruction")]
         [YAXSerializeAs("Component2")]
         public List<EMS_AnimPart2_Component2> Component2_Keyframes { get; set; }
+
+        public void InstallStageImgEntry(EMS_AnimPart2_Component1 instruction)
+        {
+            int idxOf99 = Component1_Keyframes.FindIndex(x => ushort.Parse(x.Time) == 99);
+
+            if (ushort.Parse(instruction.Time) <= 99)
+            {
+                Component1_Keyframes.Insert(idxOf99, instruction);
+            }
+            else
+            {
+                Component1_Keyframes.Add(instruction);
+            }
+        }
     }
 
     public class InstructionPart3
@@ -901,11 +946,17 @@ namespace Xv2CoreLib.EMS
         public List<EMS_AnimPart2_Component2> Component3_Keyframes { get; set; }
     }
 
-    public class EMS_AnimPart1_Component1
+    public class EMS_AnimPart1_Component1 : IInstallable
     {
+        #region Installer
+        [YAXDontSerialize]
+        public int SortID { get { return int.Parse(Time); } set { Time = value.ToString(); } }
+        [YAXDontSerialize]
+        public string Index { get { return Time.ToString(); } set { Time = value.ToString(); } }
+        #endregion
 
         [YAXAttributeForClass]
-        public ushort Time { get; set; }
+        public string Time { get; set; } //ushort
         [YAXAttributeForClass]
         public ushort I_02 { get; set; }
 
@@ -947,7 +998,7 @@ namespace Xv2CoreLib.EMS
         {
             return new EMS_AnimPart1_Component1()
             {
-                Time = BitConverter.ToUInt16(bytes, keyframeIndexOffset),
+                Time = BitConverter.ToUInt16(bytes, keyframeIndexOffset).ToString(),
                 I_02 = BitConverter.ToUInt16(bytes, keyframeIndexOffset + 2),
                 F_00 = BitConverter.ToSingle(bytes, dataOffset),
                 F_04 = BitConverter.ToSingle(bytes, dataOffset + 4),
@@ -979,11 +1030,17 @@ namespace Xv2CoreLib.EMS
         }
     }
 
-    public class EMS_AnimPart1_Component2
+    public class EMS_AnimPart1_Component2 : IInstallable
     {
+        #region Installer
+        [YAXDontSerialize]
+        public int SortID { get { return int.Parse(Time); } set { Time = value.ToString(); } }
+        [YAXDontSerialize]
+        public string Index { get { return Time.ToString(); } set { Time = value.ToString(); } }
+        #endregion
 
         [YAXAttributeForClass]
-        public ushort Time { get; set; }
+        public string Time { get; set; } //ushort
         [YAXAttributeForClass]
         public ushort I_02 { get; set; }
 
@@ -1025,7 +1082,7 @@ namespace Xv2CoreLib.EMS
         {
             return new EMS_AnimPart1_Component2()
             {
-                Time = BitConverter.ToUInt16(bytes, keyframeIndexOffset),
+                Time = BitConverter.ToUInt16(bytes, keyframeIndexOffset).ToString(),
                 I_02 = BitConverter.ToUInt16(bytes, keyframeIndexOffset + 2),
                 F_00 = BitConverter.ToSingle(bytes, dataOffset),
                 F_04 = BitConverter.ToSingle(bytes, dataOffset + 4),
@@ -1057,10 +1114,17 @@ namespace Xv2CoreLib.EMS
         }
     }
 
-    public class EMS_AnimPart2_Component1
+    public class EMS_AnimPart2_Component1 : IInstallable
     {
+        #region Installer
+        [YAXDontSerialize]
+        public int SortID { get { return int.Parse(Time); } set { Time = value.ToString(); } }
+        [YAXDontSerialize]
+        public string Index { get { return Time.ToString(); } set { Time = value.ToString(); } }
+        #endregion
+
         [YAXAttributeForClass]
-        public ushort Time { get; set; }
+        public string Time { get; set; } //ushort
         [YAXAttributeForClass]
         public ushort I_02 { get; set; }
 
@@ -1099,7 +1163,7 @@ namespace Xv2CoreLib.EMS
         {
             return new EMS_AnimPart2_Component1()
             {
-                Time = BitConverter.ToUInt16(bytes, keyframeIndexOffset),
+                Time = BitConverter.ToUInt16(bytes, keyframeIndexOffset).ToString(),
                 I_02 = BitConverter.ToUInt16(bytes, keyframeIndexOffset + 2),
                 I_00 = BitConverter.ToInt32(bytes, dataOffset),
                 I_04 = BitConverter.ToInt32(bytes, dataOffset + 4),
@@ -1131,10 +1195,17 @@ namespace Xv2CoreLib.EMS
         }
     }
 
-    public class EMS_AnimPart2_Component2
+    public class EMS_AnimPart2_Component2 : IInstallable
     {
+        #region Installer
+        [YAXDontSerialize]
+        public int SortID { get { return int.Parse(Time); } set { Time = value.ToString(); } }
+        [YAXDontSerialize]
+        public string Index { get { return Time.ToString(); } set { Time = value.ToString(); } }
+        #endregion
+
         [YAXAttributeForClass]
-        public ushort Time { get; set; }
+        public string Time { get; set; } //ushort
         [YAXAttributeForClass]
         public ushort I_02 { get; set; }
 
@@ -1178,7 +1249,7 @@ namespace Xv2CoreLib.EMS
         {
             return new EMS_AnimPart2_Component2()
             {
-                Time = BitConverter.ToUInt16(bytes, keyframeIndexOffset),
+                Time = BitConverter.ToUInt16(bytes, keyframeIndexOffset).ToString(),
                 I_02 = BitConverter.ToUInt16(bytes, keyframeIndexOffset + 2),
                 F_00 = BitConverter.ToSingle(bytes, dataOffset),
                 F_04 = BitConverter.ToSingle(bytes, dataOffset + 4),

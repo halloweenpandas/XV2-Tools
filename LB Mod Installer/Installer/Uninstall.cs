@@ -57,6 +57,7 @@ using Xv2CoreLib.PSO;
 using Xv2CoreLib.OCP;
 using Xv2CoreLib.AIT;
 using Xv2CoreLib.CDT;
+using Xv2CoreLib.EMS;
 using Xv2CoreLib.SDS;
 
 namespace LB_Mod_Installer.Installer
@@ -372,6 +373,9 @@ namespace LB_Mod_Installer.Installer
                     {
                         Uninstall_SDS(path, file);
                     }
+                    break;
+                case ".ems":
+                    Uninstall_EMS(path, file);
                     break;
                 default:
                     throw new Exception(string.Format("The filetype of \"{0}\" is unsupported. Uninstall failed.\n\nThis mod was likely installed by a newer version of the installer.", path));
@@ -1756,6 +1760,24 @@ namespace LB_Mod_Installer.Installer
             catch (Exception ex)
             {
                 string error = string.Format("Failed at CDT uninstall phase ({0}).", path);
+                throw new Exception(error, ex);
+            }
+        }
+        
+        private void Uninstall_EMS(string path, _File file)
+        {
+            try
+            {
+                EMS_File binaryFile = (EMS_File)GetParsedFile<EMS_File>(path, false);
+                EMS_File cpkBinFile = (EMS_File)GetParsedFile<EMS_File>(path, true);
+
+                Section section = file.GetSection(Sections.STAGEIMG_Index);
+
+                UninstallEntries(binaryFile.Sprites[0].InstructionPart2.Component1_Keyframes, (cpkBinFile != null) ? cpkBinFile.Sprites[0].InstructionPart2.Component1_Keyframes : null, section.IDs);
+            }
+            catch (Exception ex)
+            {
+                string error = string.Format("Failed at EMS uninstall phase ({0}).", path);
                 throw new Exception(error, ex);
             }
         }
