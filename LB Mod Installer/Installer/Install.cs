@@ -62,6 +62,7 @@ using Xv2CoreLib.PSO;
 using Xv2CoreLib.OCP;
 using Xv2CoreLib.AIT;
 using Xv2CoreLib.CDT;
+using Xv2CoreLib.EMS;
 using xv2Utils = Xv2CoreLib.Utils;
 using Xv2CoreLib.EMZ;
 using Xv2CoreLib.SDS;
@@ -435,6 +436,9 @@ namespace LB_Mod_Installer.Installer
                     break;
                 case ".cdt":
                     Install_CDT(xmlPath, installPath, isXml, useSkipBindings);
+                    break;
+                case ".ems":
+                    Install_EMS(xmlPath, installPath, isXml, useSkipBindings);
                     break;
                 case ".emz":
                     XDocument emzXml = zipManager.GetXmlDocumentFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath));
@@ -2433,6 +2437,41 @@ namespace LB_Mod_Installer.Installer
 #endif
         }
 
+        //Currently only supports STAGEIMG, might expand later
+        private void Install_EMS(string xmlPath, string installPath, bool isXml, bool useSkipBindings)
+        {
+#if !DEBUG
+            try
+#endif
+            {
+                if (!installPath.Contains("STAGEIMG"))
+                {
+                    throw new Exception("EMS Installation can only be used with STAGEIMG.ems at this time.");
+                }
+
+                EMS_File xmlFile = (isXml) ? zipManager.DeserializeXmlFromArchive_Ext<EMS_File>(GeneralInfo.GetPathInZipDataDir(xmlPath)) : EMS_File.Load(zipManager.GetFileFromArchive(GeneralInfo.GetPathInZipDataDir(xmlPath)));
+                EMS_File binaryFile = (EMS_File)GetParsedFile<EMS_File>(installPath);
+
+                //Parse bindings
+                bindingManager.ParseProperties(xmlFile.Sprites[0].InstructionPart2.Component1_Keyframes, binaryFile.Sprites[0].InstructionPart2.Component1_Keyframes, installPath);
+
+                //Install entries
+                foreach (var instruction in xmlFile.Sprites[0].InstructionPart2.Component1_Keyframes)
+                {
+                    GeneralInfo.Tracker.AddID(installPath, Sections.STAGEIMG_Index, instruction.Time);
+
+                    binaryFile.Sprites[0].InstructionPart2.InstallStageImgEntry(instruction);
+                }
+            }
+#if !DEBUG
+            catch (Exception ex)
+            {
+                string error = string.Format("Failed at EMS install phase ({0}).", xmlPath);
+                throw new Exception(error, ex);
+            }
+#endif
+        }
+
 
         //Generic Install Methods
         //We need generic methods for IInstallable via List and ObservableCollection. Most file types will be handled with this.
@@ -2785,6 +2824,8 @@ namespace LB_Mod_Installer.Installer
                     return AIT_File.Parse(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".cdt":
                     return CDT_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
+                case ".ems":
+                    return EMS_File.Load(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 case ".emz":
                     return EMZ_File.LoadData(fileIO.GetFileFromGame(path, raiseEx, onlyFromCpk));
                 default:
@@ -2915,6 +2956,8 @@ namespace LB_Mod_Installer.Installer
                     return ((AIT_File)data).SaveToBytes();
                 case ".cdt":
                     return ((CDT_File)data).SaveToBytes();
+                case ".ems":
+                    return ((EMS_File)data).Write();
                 case ".emz":
                     if(data is EMB_File emb)
                     {
