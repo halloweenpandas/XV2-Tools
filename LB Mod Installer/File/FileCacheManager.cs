@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Globalization;
 using Xv2CoreLib;
 using Xv2CoreLib.ACB;
 using Xv2CoreLib.EffectContainer;
@@ -15,6 +16,7 @@ namespace LB_Mod_Installer.Installer
     {
         public List<CachedFile> cachedFiles = new List<CachedFile>();
         public string lastSaved;
+        public InstallerXml installerXml;
 
         /// <summary>
         /// Add a parsed file. Will overwrite existing files if path matches.
@@ -172,8 +174,9 @@ namespace LB_Mod_Installer.Installer
             return null;
         }
 
-        public void SaveParsedFiles()
+        public void SaveParsedFiles(MainWindow parent)
         {
+            UpdateProgessBarText($"Saving parsed files...", false, 0, false, parent: parent);
             foreach (var file in cachedFiles)
             {
                 lastSaved = file.Path + " (xml)";
@@ -219,8 +222,9 @@ namespace LB_Mod_Installer.Installer
             }
         }
 
-        public void SaveStreamFiles()
+        public void SaveStreamFiles(MainWindow parent)
         {
+            int currentProgress = 1;
             foreach (var file in cachedFiles)
             {
                 lastSaved = file.Path + " (binary)";
@@ -230,6 +234,8 @@ namespace LB_Mod_Installer.Installer
                 {
                     file.WriteStream();
                 }
+                UpdateProgessBarText($"Saving files...", true, currentProgress, false, parent: parent);
+                currentProgress++;
             }
         }
 
@@ -277,18 +283,23 @@ namespace LB_Mod_Installer.Installer
             }
         }
 
-        public void NukeEmptyDirectories()
+        public void NukeEmptyDirectories(MainWindow parent)
         {
             List<string> dirs = new List<string>();
 
-            foreach(var file in cachedFiles)
+            int currentProgress = 0;
+            foreach (var file in cachedFiles)
             {
                 string dir = Path.GetDirectoryName(file.Path);
 
                 if (!dirs.Contains(dir))
                     dirs.Add(dir);
+
+                UpdateProgessBarText($"Nuking empty directories...", false, currentProgress, false, parent: parent);
+                currentProgress++;
             }
 
+            currentProgress = 0;
             foreach(var dir in dirs)
             {
                 string actualPath = GeneralInfo.GetPathInGameDir(dir);
@@ -301,7 +312,21 @@ namespace LB_Mod_Installer.Installer
                     }
                     catch { }
                 }
+
+                UpdateProgessBarText($"Nuking empty directories...", false, currentProgress, false, parent: parent);
+                currentProgress++;
             }
+        }
+        private void UpdateProgessBarText(string text, bool count = true, int currentProgress = -1, bool overwriteShowProgress = false, MainWindow parent = null)
+        {
+            double percentage = (double)currentProgress / cachedFiles.Count * 100;
+            parent.Dispatcher.BeginInvoke((System.Action)(() =>
+            {
+                if (count)
+                    parent.ProgressBar_Label.Content = $"_{text} ({currentProgress}/{cachedFiles.Count})";
+                if (!count)
+                    parent.ProgressBar_Label.Content = $"_{text}";
+            }));
         }
     }
 
