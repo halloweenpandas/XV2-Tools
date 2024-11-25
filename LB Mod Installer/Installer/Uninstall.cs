@@ -152,9 +152,9 @@ namespace LB_Mod_Installer.Installer
             try
 #endif
             {
-                fileManager.SaveParsedFiles();
-                fileManager.SaveStreamFiles();
-                fileManager.NukeEmptyDirectories();
+                fileManager.SaveParsedFiles(parent);
+                fileManager.SaveStreamFiles(parent);
+                fileManager.NukeEmptyDirectories(parent);
             }
 #if !DEBUG
             catch (Exception ex)

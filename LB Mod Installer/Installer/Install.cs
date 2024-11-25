@@ -722,16 +722,16 @@ namespace LB_Mod_Installer.Installer
             try
 #endif
             {
-                UpdateProgessBarText("_Saving files...", false, overwriteShowProgress: true);
+                UpdateProgessBarText("_Saving parsed files...", false, overwriteShowProgress: true);
                 startedSaving = true;
 
-                fileManager.SaveParsedFiles();
+                fileManager.SaveParsedFiles(Parent);
 
                 //Binary files. They are a "stream" from the zip file, not loaded into memory.
                 //Save them last to decrease chance of errors, as these files cant be restored if anything happens
-                fileManager.SaveStreamFiles();
+                fileManager.SaveStreamFiles(Parent);
 
-                fileManager.NukeEmptyDirectories();
+                fileManager.NukeEmptyDirectories(Parent);
             }
 #if !DEBUG
             catch (Exception ex)
